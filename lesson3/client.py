@@ -2,8 +2,8 @@ import sys
 import socket
 import json
 
-from common.utils import send_meccage, get_message
-from common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, DEFAULT_IP_ADRESS, DEFAULT_PORT, \
+from lesson3.common.utils import send_meccage, get_message
+from lesson3.common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, DEFAULT_IP_ADRESS, DEFAULT_PORT, \
     RESPONSE, ERROR
 import time
 
@@ -19,10 +19,10 @@ def create_presence(account_name = 'Guest'):
 
 def process_answer(message):
     if RESPONSE in message:
-        if message[RESPONSE] == '200':
+        if message[RESPONSE] == 200:
             return '200: все норм'
         print(message)
-    return f'400:{message[ERROR]}'
+        return f'400:{message[ERROR]}'
     raise ValueError
 
 

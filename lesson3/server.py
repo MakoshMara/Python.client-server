@@ -2,17 +2,23 @@ import socket
 import sys
 import json
 
-from common.utils import get_message, send_meccage
-from common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, RESPONSE, RESPONDEFAULT_IP_ADRESS, \
+from lesson3.common.utils import get_message, send_meccage
+from lesson3.common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, RESPONSE, RESPONDEFAULT_IP_ADRESS, \
     ERROR, DEFAULT_PORT, MAX_CONNECTIONS
 
 
 def process_client_massage(message):
     if ACTION in message and message[ACTION] == PRESENCE and TIME in \
             message and USER in message and message[USER][ACCOUNT_NAME] == 'Guest':
-        return {RESPONSE: '200'}
+        return {RESPONSE: 200}
+    elif ACTION in message and message[ACTION] == PRESENCE and TIME in \
+            message and USER in message and message[USER][ACCOUNT_NAME] != 'Guest':
+        return {
+        RESPONSE: 400,
+        ERROR:'Unknown user'
+        }
     return {
-        RESPONDEFAULT_IP_ADRESS: 400,
+        RESPONSE: 400,
         ERROR:'Bad request'
     }
 
