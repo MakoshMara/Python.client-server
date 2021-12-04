@@ -1,6 +1,11 @@
 import sys
 import json
+import traceback
 
+from lesson3.decos import log
+
+
+@log
 def get_message(client):
 
     from lesson3.common.variables import MAX_PACAGE_LEGTH
@@ -19,6 +24,7 @@ def get_message(client):
         raise ValueError
     raise ValueError
 
+@log
 def send_meccage(sock, message):
     if not isinstance(message,dict):
         raise TypeError
