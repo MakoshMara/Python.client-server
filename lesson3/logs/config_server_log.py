@@ -3,7 +3,7 @@ import sys
 import os
 from logging import handlers
 
-from lesson3.common.variables import LOGGING_LEVEL, FORMATTER_DEFAULT
+from common.variables import LOGGING_LEVEL, FORMATTER_DEFAULT
 
 FORMATTER = FORMATTER_DEFAULT
 PATH = os.path.dirname(os.path.abspath(__file__))

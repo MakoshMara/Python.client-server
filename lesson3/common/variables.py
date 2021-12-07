@@ -10,11 +10,14 @@ ACTION = 'action'
 TIME = 'time'
 USER = 'user'
 ACCOUNT_NAME = 'account_name'
+SENDER = 'sender'
 
 PRESENCE = 'presence'
 RESPONSE = 'response'
 ERROR = 'error'
 RESPONDEFAULT_IP_ADRESS = 'responedefault_ip_adress'
+MESSAGE = 'message'
+MESSAGE_TEXT = 'mess_text'
 
 LOGGING_LEVEL = logging.DEBUG
 FORMATTER_DEFAULT = logging.Formatter('%(asctime)s %(levelname) -8s %(filename) -11s %(message)s')
