@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import logs.config_server_log
+from lesson3.decos import log
 
 from lesson3.common.utils import get_message, send_meccage
 from lesson3.common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, RESPONSE, \
@@ -11,6 +12,7 @@ from lesson3.errors import IncorrectDataRecivedError
 
 SERVER_LOGGER = logging.getLogger('server')
 
+@log
 def process_client_massage(message):
     SERVER_LOGGER.debug(f'Разбор сетевого сообщения от клиента: {message}')
     if ACTION in message and message[ACTION] == PRESENCE and TIME in \
@@ -30,6 +32,7 @@ def process_client_massage(message):
         ERROR:'Bad request'
     }
 
+@log
 def main():
     try:
         if '-p' in sys.argv:

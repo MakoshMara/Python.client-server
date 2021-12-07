@@ -9,10 +9,12 @@ from lesson3.common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME,
     RESPONSE, ERROR
 import time
 
+from decos import log
 from lesson3.errors import ReqFieldMissingError
 
 CLIENT_LOGGER = logging.getLogger('client')
 
+@log
 def create_presence(account_name = 'Guest'):
     out_massage = {
         ACTION:PRESENCE,
@@ -24,6 +26,7 @@ def create_presence(account_name = 'Guest'):
     CLIENT_LOGGER.debug(f'Сформированно сообщение серверу: {out_massage}')
     return out_massage
 
+@log
 def process_answer(message):
     if RESPONSE in message:
         if message[RESPONSE] == 200:
@@ -35,7 +38,7 @@ def process_answer(message):
 
 
 
-
+@log
 def main():
     try:
         server_adr = sys.argv[1]
