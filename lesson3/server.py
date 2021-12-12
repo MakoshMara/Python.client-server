@@ -11,35 +11,53 @@ from decos import log
 
 from common.utils import get_message, send_meccage
 from common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, RESPONSE, \
-    ERROR, DEFAULT_PORT, MAX_CONNECTIONS, MESSAGE, MESSAGE_TEXT, SENDER
+    ERROR, DEFAULT_PORT, MAX_CONNECTIONS, MESSAGE, MESSAGE_TEXT, SENDER, RESPONSE_200, RESPONSE_400, DESTINATION, EXIT
 from errors import IncorrectDataRecivedError
 
 SERVER_LOGGER = logging.getLogger('server')
 
 @log
-def process_client_massage(message, messages_list, client):
-    SERVER_LOGGER.debug(f'Разбор сетевого сообщения от клиента: {message}')
+def process_client_massage(message, messages_list, client, clients, names):
     if ACTION in message and message[ACTION] == PRESENCE and TIME in message \
-            and USER in message and message[USER][ACCOUNT_NAME] == 'Guest':
-        send_meccage(client, {RESPONSE: 200})
+            and USER in message:
+        if message[USER][ACCOUNT_NAME] not in names.keys():
+            names[message[USER][ACCOUNT_NAME]] = client
+            send_meccage(client, RESPONSE_200)
+        else:
+            response = RESPONSE_400
+            response[ERROR] = 'Имя пользователя уже занято.'
+            send_meccage(client, response)
+            clients.remove(client)
+            client.close()
         return
     elif ACTION in message and message[ACTION] == MESSAGE and \
-            TIME in message and MESSAGE_TEXT in message:
-        messages_list.append((message[ACCOUNT_NAME], message[MESSAGE_TEXT]))
-        SERVER_LOGGER.error(f'Пришло сообщение {message[MESSAGE_TEXT]}')
+            DESTINATION in message and TIME in message \
+            and SENDER in message and MESSAGE_TEXT in message:
+        messages_list.append(message)
         return
-    elif ACTION in message and message[ACTION] == PRESENCE and TIME in \
-            message and USER in message and message[USER][ACCOUNT_NAME] != 'Guest':
-        SERVER_LOGGER.error(f'Пришло сообщение от неизвестного пользователя')
-        return {
-        RESPONSE: 400,
-        ERROR:'Unknown user'
-        }
-    SERVER_LOGGER.error(f'Пришло пришло негодное сообщение')
-    return {
-        RESPONSE: 400,
-        ERROR:'Bad request'
-    }
+    elif ACTION in message and message[ACTION] == EXIT and ACCOUNT_NAME in message:
+        clients.remove(names[message[ACCOUNT_NAME]])
+        names[message[ACCOUNT_NAME]].close()
+        del names[message[ACCOUNT_NAME]]
+        return
+
+    else:
+        response = RESPONSE_400
+        response[ERROR] = 'Запрос некорректен.'
+        send_meccage(client, response)
+        return
+@log
+def process_message(message, names, listen_socks):
+    if message[DESTINATION] in names and names[message[DESTINATION]] in listen_socks:
+        send_meccage(names[message[DESTINATION]], message)
+        SERVER_LOGGER.info(f'Отправлено сообщение пользователю {message[DESTINATION]} '
+                    f'от пользователя {message[SENDER]}.')
+    elif message[DESTINATION] in names and names[message[DESTINATION]] not in listen_socks:
+        raise ConnectionError
+    else:
+        SERVER_LOGGER.error(
+            f'Пользователь {message[DESTINATION]} не зарегистрирован на сервере, '
+            f'отправка сообщения невозможна.')
 
 @log
 def arg_parser():
@@ -77,6 +95,8 @@ def main():
     clients = []
     messages = []
 
+    names = dict()
+
     transport.listen(MAX_CONNECTIONS)
 
     while True:
@@ -85,13 +105,13 @@ def main():
         except OSError:
             pass
         else:
-            SERVER_LOGGER.info(f'Установлено соедение с ПК {client_address} {clients}')
+            SERVER_LOGGER.info(f'Установлено соедение с ПК {client_address}')
             clients.append(client)
 
 
         recv_data_lst = []
         send_data_lst = []
-        err_lst = []
+
         try:
             if clients:
                 recv_data_lst, send_data_lst, err_lst = select.select(clients, clients, [], 0)
@@ -102,14 +122,19 @@ def main():
             for client_with_message in recv_data_lst:
                 try:
                     process_client_massage(get_message(client_with_message),
-                                           messages, client_with_message)
-                    SERVER_LOGGER.info(f'Клиент {client_with_message.getpeername()} '
-                                       f'отключился от сервера.')
-                except:
+                                           messages, client_with_message, clients, names)
+                except Exception:
                     SERVER_LOGGER.info(f'Клиент {client_with_message.getpeername()} '
                                 f'отключился от сервера.')
                     clients.remove(client_with_message)
-
+        for i in messages:
+            try:
+                process_message(i, names, send_data_lst)
+            except Exception:
+                SERVER_LOGGER.info(f'Связь с клиентом с именем {i[DESTINATION]} была потеряна')
+                clients.remove(names[i[DESTINATION]])
+                del names[i[DESTINATION]]
+        messages.clear()
         if messages and send_data_lst:
             message = {
                 ACTION: MESSAGE,
@@ -118,24 +143,7 @@ def main():
                 MESSAGE_TEXT: messages[0][1]
             }
             del messages[0]
-            SERVER_LOGGER.info(f'Сообщение для клиента {message}.')
-            for waiting_client in send_data_lst:
-                try:
-                    send_meccage(waiting_client, message)
-                except:
-                    SERVER_LOGGER.info(f'Клиент {waiting_client.getpeername()} отключился от сервера.')
-                    waiting_client.close()
-                    clients.remove(waiting_client)
-
-        # except json.JSONDecodeError:
-        #     SERVER_LOGGER.error(f'Не удалось декодировать JSON, полученный от клиента {client_address}.'
-        #                         f'Соединение закрывается')
-        #     client.close()
-        # except IncorrectDataRecivedError:
-        #     SERVER_LOGGER.error(
-        #         f'От клиента {client_address} получены некорректные данные.'
-        #         f'Соединение закрывается')
-        #     client.close()
+            SERVER_LOGGER.info(f'Сообщение для клиента {message[DESTINATION]}: {message}.')
 
 if __name__ == '__main__':
     main()
